@@ -1,15 +1,22 @@
 package org.example;
 
 import org.example.annotations.*;
+import org.example.exceptions.*;
+
 import java.lang.reflect.*;
 import java.util.*;
 
-public class Container{
+public class Container {
     private final Map<String, Object> namedInstances = new HashMap<>();
     private final Map<Class<?>, Object> classInstances = new HashMap<>();
     private final Map<Class<?>, Class<?>> implementations = new HashMap<>();
+    private final Properties properties;
 
-    public Object getInstance(String key) throws Exception {
+    public Container(Properties properties) {
+        this.properties = properties;
+    }
+
+    public Object getInstance(String key) {
         return namedInstances.get(key);
     }
 
@@ -20,46 +27,55 @@ public class Container{
             instance = (T) createInstance(c);
             registerInstance(c, instance);
         }
+
         return instance;
     }
 
-    public void registerInstance(String key, Object instance) throws Exception {
-        decorateInstance(instance);
+    public void registerInstance(String key, Object instance)  {
         namedInstances.put(key, instance);
     }
 
     public void registerInstance(Class<?> c, Object instance) throws Exception {
-        decorateInstance(instance);
+        Object existingInstance = classInstances.get(c);
+        if (existingInstance != null) {
+            throw new ConfigurationException("Instance for " + c.getSimpleName() + " already exists");
+        }
         classInstances.put(c, instance);
     }
 
-    public void registerImplementation(Class<?> c, Class<?> subClass) throws Exception {
+    public void registerInstance(Object instance)  {
+        classInstances.put(instance.getClass(), instance);
+    }
+
+    public void registerImplementation(Class<?> c, Class<?> subClass)  {
         implementations.put(c, subClass);
     }
 
-    public void registerImplementation(Class<?> c) throws Exception {
+    public void registerImplementation(Class<?> c)  {
         Class<?>[] interfaces = c.getInterfaces();
         for (Class<?> interfaceClass : interfaces) {
             registerImplementation(interfaceClass, c);
         }
     }
 
-    public void registerInstance(Object instance) throws Exception {
+    private Object createInstance(Class<?> c) throws Exception {
+        c = getClassForConstructor(c);
+        if (c == null) {
+            throw new ConfigurationException("Missing default interface implementation.");
+        }
+
+        Object instance = injectConstructor(c);
+        if (instance == null) {
+            Constructor<?> constructor = c.getDeclaredConstructor();
+            instance = constructor.newInstance();
+        }
+
         decorateInstance(instance);
-        classInstances.put(instance.getClass(), instance);
+        return instance;
     }
 
     public void decorateInstance(Object o) throws Exception {
-        if (o == null) {
-            return;
-        }
-
         Class<?> instanceClass = o.getClass();
-        injectConstructorsParams(o, instanceClass);
-        injectFields(o, instanceClass);
-    }
-
-    private void injectFields(Object o, Class<?> instanceClass) throws Exception {
         Field[] fields = instanceClass.getDeclaredFields();
         for (Field field : fields) {
             Inject injectAnn = field.getAnnotation(Inject.class);
@@ -74,41 +90,93 @@ public class Container{
             field.setAccessible(true);
             field.set(o, value);
         }
+
+        if (o instanceof Initializer) {
+            ((Initializer) o).init();
+        }
     }
 
-    private void injectConstructorsParams(Object o, Class<?> instanceClass) throws Exception {
+    private Class<?> getClassForConstructor(Class<?> c) throws Exception {
+        if (!c.isInterface()) {
+            return c;
+        }
+
+        Class<?> implClass = implementations.get(c);
+        if (implClass != null) {
+            return implClass;
+        }
+
+        Default defaultAnn = c.getAnnotation(Default.class);
+        if (defaultAnn == null) {
+            return null;
+        }
+
+        implClass = defaultAnn.value();
+        registerImplementation(c, implClass);
+        return implClass;
+    }
+
+    private Object injectConstructor(Class<?> instanceClass) throws Exception {
+        boolean hasInjectAnn = false;
+        Object instance = null;
+
         Constructor<?>[] constructors = instanceClass.getDeclaredConstructors();
         for (Constructor<?> constructor : constructors) {
             Inject injectAnn = constructor.getAnnotation(Inject.class);
             if (injectAnn == null) {
                 continue;
             }
-            Parameter[] parameters = constructor.getParameters();
-            for (Parameter parameter : parameters) {
-                String paramName = parameter.getName();
-                Field field = instanceClass.getField(paramName);
-                Object value = classInstances.get(field.getClass());
-                field.setAccessible(true);
-                field.set(o, value);
+
+            if (hasInjectAnn) {
+                throw new ConfigurationException("More than one constructor with @Inject annotation");
             }
+
+            hasInjectAnn = true;
+            Object[] values = getParamValues(constructor);
+            instance = constructor.newInstance(values);
         }
+
+        return instance;
     }
 
-    private Object createInstance(Class<?> c) throws Exception {
-        if (c.isInterface()) {
-            Class<?> implClass = implementations.get(c);
-            if (implClass == null) {
-                Default defaultAnn = c.getAnnotation(Default.class);
-                if (defaultAnn == null) {
-                    return null;
-                }
-                implClass = defaultAnn.value();
-                registerImplementation(c, implClass);
-                c = implClass;
+    private Object[] getParamValues(Constructor<?> constructor) throws Exception {
+        Parameter[] parameters = constructor.getParameters();
+        Object[] values = new Object[parameters.length];
+
+        for (int i = 0; i < parameters.length; i++) {
+            Class<?> parameterType = parameters[i].getType();
+            if (!parameterType.isPrimitive() && !parameterType.equals(String.class)) {
+                values[i] = getInstance(parameterType);
+                continue;
             }
+
+            Named namedAnn = parameters[i].getAnnotation(Named.class);
+            if (namedAnn == null) {
+                throw new ConfigurationException("Unnamed primitive parameter of type " + parameterType);
+            }
+
+            String propertyName = namedAnn.value();
+            String property = properties.getProperty(propertyName);
+            if (property == null) {
+                throw new ConfigurationException("Missing property " + propertyName);
+            }
+            values[i] = fromStringToPrimitive(property, parameterType);
         }
-        Constructor<?> constructor = c.getDeclaredConstructor();
-        constructor.setAccessible(true);
-        return constructor.newInstance();
+
+        return values;
+    }
+
+    private Object fromStringToPrimitive(String s, Class<?> type) {
+        return switch(type.getSimpleName()) {
+            case "int" -> Integer.parseInt(s);
+            case "double" -> Double.parseDouble(s);
+            case "float" -> Float.parseFloat(s);
+            case "boolean" -> Boolean.parseBoolean(s);
+            case "short" -> Short.parseShort(s);
+            case "long" -> Long.parseLong(s);
+            case "byte" -> Byte.parseByte(s);
+            case "char" -> s.charAt(0);
+            default -> s;
+        };
     }
 }
