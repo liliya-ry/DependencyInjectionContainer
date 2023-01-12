@@ -3,18 +3,14 @@ package org.example;
 import org.example.annotations.*;
 import java.lang.reflect.*;
 import java.util.*;
+
 public class Container{
     private final Map<String, Object> namedInstances = new HashMap<>();
     private final Map<Class<?>, Object> classInstances = new HashMap<>();
     private final Map<Class<?>, Class<?>> implementations = new HashMap<>();
 
     public Object getInstance(String key) throws Exception {
-        Object instance = namedInstances.get(key);
-
-        if (instance == null) {
-            registerInstance(key, instance);
-        }
-        return instance;
+        return namedInstances.get(key);
     }
 
     public <T> T getInstance(Class<T> c) throws Exception {
@@ -38,13 +34,13 @@ public class Container{
     }
 
     public void registerImplementation(Class<?> c, Class<?> subClass) throws Exception {
-
+        implementations.put(c, subClass);
     }
 
     public void registerImplementation(Class<?> c) throws Exception {
         Class<?>[] interfaces = c.getInterfaces();
         for (Class<?> interfaceClass : interfaces) {
-            implementations.put(interfaceClass, c);
+            registerImplementation(interfaceClass, c);
         }
     }
 

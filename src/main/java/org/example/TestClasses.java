@@ -39,12 +39,16 @@ public class TestClasses {
         @Inject @Named String email;
     }
 
-//    class FSI implements Initializer {
-//        @Inject @Named String email;
-//
-//        @Override
-//        public void init() throws Exception {
-//            email = "mailto:" + email;
-//        }
-//    }
+    interface Initializer {
+        void init() throws Exception;
+    }
+
+    class FSI implements Initializer {
+        @Inject @Named String email;
+
+        @Override
+        public void init() throws Exception {
+            email = "mailto:" + email;
+        }
+    }
 }
