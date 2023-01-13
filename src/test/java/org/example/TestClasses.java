@@ -9,11 +9,17 @@ public class TestClasses {
 
     static class B {
         @Inject
-        A aField;
+        private A aField;
+
+        public A getaField() {
+            return aField;
+        }
     }
 
     static class C {
-        @Inject B bField;
+        @Inject
+        @Lazy
+        B bField;
     }
 
     @Default(D.class)

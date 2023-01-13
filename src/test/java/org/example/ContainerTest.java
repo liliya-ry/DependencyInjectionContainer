@@ -22,7 +22,7 @@ class ContainerTest {
     void autoInject() throws Exception {
         B inst = container.getInstance(B.class);
         assertNotNull(inst);
-        assertNotNull(inst.aField);
+        assertNotNull(inst.getaField());
     }
 
     @Test
@@ -31,7 +31,7 @@ class ContainerTest {
         B inst = container.getInstance(B.class);
 
         assertNotNull(inst);
-        assertNotNull(inst.aField);
+        assertNotNull(inst.getaField());
     }
 
     @Test
@@ -41,7 +41,7 @@ class ContainerTest {
         B inst = container.getInstance(B.class);
 
         assertNotNull(inst);
-        assertSame(a, inst.aField);
+        assertSame(a, inst.getaField());
     }
 
     @Test
@@ -77,7 +77,7 @@ class ContainerTest {
         container.registerImplementation(AI.class, A.class);
         B inst = container.getInstance(B.class);
         assertNotNull(inst);
-        assertNotNull(inst.aField);
+        assertNotNull(inst.getaField());
     }
 
     @Test
@@ -97,7 +97,7 @@ class ContainerTest {
         container.decorateInstance(ci);
 
         assertNotNull(ci.bField);
-        assertNotNull(ci.bField.aField);
+        assertNotNull(ci.bField.getaField());
     }
 
     @Test

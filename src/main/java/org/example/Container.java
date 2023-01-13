@@ -2,6 +2,9 @@ package org.example;
 
 import org.example.annotations.*;
 import org.example.exceptions.*;
+import org.mockito.ArgumentMatchers;
+import org.mockito.Mockito;
+import org.mockito.exceptions.verification.NoInteractionsWanted;
 
 import java.lang.reflect.*;
 import java.util.*;
@@ -83,8 +86,20 @@ public class Container {
                 continue;
             }
 
+
+            Object value = null;
+            Lazy lazyAnn = field.getAnnotation(Lazy.class);
+            if (lazyAnn != null) {
+//                Class<?> fieldType = field.getType();
+//                value = Mockito.spy(fieldType);
+//                field.setAccessible(true);
+//                field.set(o, value);
+//                Mockito.verifyNoMoreInteractions(value);
+//                continue;
+            }
+
             Named namedAnn = field.getAnnotation(Named.class);
-            Object value = namedAnn == null ?
+            value = namedAnn == null ?
                     getInstance(field.getType()) :
                     getInstance(field.getName());
             field.setAccessible(true);
