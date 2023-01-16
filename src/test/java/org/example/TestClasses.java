@@ -5,7 +5,7 @@ import org.example.annotations.*;
 public class TestClasses {
     interface AI { }
 
-    static class A implements AI { }
+    static class A implements AI {}
 
     static class B {
         @Inject
@@ -87,5 +87,15 @@ public class TestClasses {
         public I(@Named("flag") boolean flag) {
             this.flag = flag;
         }
+    }
+
+    static class M {
+        @Inject
+        N nField;
+    }
+
+    static class N {
+        @Inject
+        M mField;
     }
 }

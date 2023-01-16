@@ -132,4 +132,9 @@ class ContainerTest {
     void missingProperty() {
         assertThrows(ConfigurationException.class, () -> container.getInstance(I.class));
     }
+
+    @Test
+    void circularDependency() throws Exception {
+        assertThrows(ConfigurationException.class, () -> container.getInstance(M.class));
+    }
 }

@@ -2,9 +2,6 @@ package org.example;
 
 import org.example.annotations.*;
 import org.example.exceptions.*;
-import org.mockito.ArgumentMatchers;
-import org.mockito.Mockito;
-import org.mockito.exceptions.verification.NoInteractionsWanted;
 
 import java.lang.reflect.*;
 import java.util.*;
@@ -13,10 +10,10 @@ public class Container {
     private final Map<String, Object> namedInstances = new HashMap<>();
     private final Map<Class<?>, Object> classInstances = new HashMap<>();
     private final Map<Class<?>, Class<?>> implementations = new HashMap<>();
-    private final Properties properties;
+    private Set<Class<?>> visitedClasses = new HashSet<>();
 
     public Container(Properties properties) {
-        this.properties = properties;
+        properties.forEach((k, v) -> namedInstances.put((String) k, v));
     }
 
     public Object getInstance(String key) {
@@ -34,27 +31,38 @@ public class Container {
         return instance;
     }
 
-    public void registerInstance(String key, Object instance)  {
+    public void registerInstance(String key, Object instance) throws Exception {
+        Object existingInstance = namedInstances.get(key);
+
+        if (existingInstance != null) {
+            throw new ConfigurationException("Instance with name " + key + " already exists");
+        }
+
         namedInstances.put(key, instance);
     }
 
     public void registerInstance(Class<?> c, Object instance) throws Exception {
         Object existingInstance = classInstances.get(c);
+
         if (existingInstance != null) {
             throw new ConfigurationException("Instance for " + c.getSimpleName() + " already exists");
         }
-        classInstances.put(c, instance);
-    }
 
-    public void registerInstance(Object instance)  {
         classInstances.put(instance.getClass(), instance);
     }
 
-    public void registerImplementation(Class<?> c, Class<?> subClass)  {
+    public void registerInstance(Object instance) throws Exception {
+        registerInstance(instance.getClass(), instance);
+    }
+
+    public void registerImplementation(Class<?> c, Class<?> subClass) throws Exception {
+        if (!c.isAssignableFrom(subClass)) {
+            throw new ConfigurationException(c + " is not assignable from " + subClass);
+        }
         implementations.put(c, subClass);
     }
 
-    public void registerImplementation(Class<?> c)  {
+    public void registerImplementation(Class<?> c) throws Exception {
         Class<?>[] interfaces = c.getInterfaces();
         for (Class<?> interfaceClass : interfaces) {
             registerImplementation(interfaceClass, c);
@@ -79,6 +87,21 @@ public class Container {
 
     public void decorateInstance(Object o) throws Exception {
         Class<?> instanceClass = o.getClass();
+        if (visitedClasses.contains(instanceClass)) {
+            throw new ConfigurationException("Circular dependency detected in class " + instanceClass);
+        }
+
+        visitedClasses.add(instanceClass);
+        injectFields(o);
+
+        if (o instanceof Initializer) {
+            ((Initializer) o).init();
+        }
+    }
+
+    private void injectFields(Object o) throws Exception {
+        Class<?> instanceClass = o.getClass();
+
         Field[] fields = instanceClass.getDeclaredFields();
         for (Field field : fields) {
             Inject injectAnn = field.getAnnotation(Inject.class);
@@ -87,27 +110,17 @@ public class Container {
             }
 
 
-            Object value = null;
+            Object value;
+            Class<?> fieldType = field.getType();
             Lazy lazyAnn = field.getAnnotation(Lazy.class);
             if (lazyAnn != null) {
-//                Class<?> fieldType = field.getType();
-//                value = Mockito.spy(fieldType);
-//                field.setAccessible(true);
-//                field.set(o, value);
-//                Mockito.verifyNoMoreInteractions(value);
-//                continue;
+                //todo
             }
 
             Named namedAnn = field.getAnnotation(Named.class);
-            value = namedAnn == null ?
-                    getInstance(field.getType()) :
-                    getInstance(field.getName());
+            value = namedAnn != null ? getInstance(field.getName()) : getInstance(fieldType);
             field.setAccessible(true);
             field.set(o, value);
-        }
-
-        if (o instanceof Initializer) {
-            ((Initializer) o).init();
         }
     }
 
@@ -127,6 +140,10 @@ public class Container {
         }
 
         implClass = defaultAnn.value();
+        if (!c.isAssignableFrom(implClass)) {
+            throw new ConfigurationException(c + "is not assignable from " + implClass);
+        }
+
         registerImplementation(c, implClass);
         return implClass;
     }
@@ -154,13 +171,18 @@ public class Container {
         return instance;
     }
 
+    private static final Set<Class<?>> WRAPPER_CLASSES = Set.of(
+            Integer.class, Float.class, Double.class, Short.class,
+            Long.class, Byte.class, Character.class, Boolean.class
+    );
+
     private Object[] getParamValues(Constructor<?> constructor) throws Exception {
         Parameter[] parameters = constructor.getParameters();
         Object[] values = new Object[parameters.length];
 
         for (int i = 0; i < parameters.length; i++) {
             Class<?> parameterType = parameters[i].getType();
-            if (!parameterType.isPrimitive() && !parameterType.equals(String.class)) {
+            if (!parameterType.isPrimitive() && !WRAPPER_CLASSES.contains(parameterType) && !parameterType.equals(String.class)) {
                 values[i] = getInstance(parameterType);
                 continue;
             }
@@ -171,10 +193,12 @@ public class Container {
             }
 
             String propertyName = namedAnn.value();
-            String property = properties.getProperty(propertyName);
+            String property = (String) namedInstances.get(propertyName);
+
             if (property == null) {
                 throw new ConfigurationException("Missing property " + propertyName);
             }
+
             values[i] = fromStringToPrimitive(property, parameterType);
         }
 
@@ -183,14 +207,14 @@ public class Container {
 
     private Object fromStringToPrimitive(String s, Class<?> type) {
         return switch(type.getSimpleName()) {
-            case "int" -> Integer.parseInt(s);
-            case "double" -> Double.parseDouble(s);
-            case "float" -> Float.parseFloat(s);
-            case "boolean" -> Boolean.parseBoolean(s);
-            case "short" -> Short.parseShort(s);
-            case "long" -> Long.parseLong(s);
-            case "byte" -> Byte.parseByte(s);
-            case "char" -> s.charAt(0);
+            case "int", "Integer" -> Integer.parseInt(s);
+            case "double", "Double" -> Double.parseDouble(s);
+            case "float", "Float" -> Float.parseFloat(s);
+            case "boolean", "Boolean" -> Boolean.parseBoolean(s);
+            case "short", "Short" -> Short.parseShort(s);
+            case "long", "Long" -> Long.parseLong(s);
+            case "byte", "Byte" -> Byte.parseByte(s);
+            case "char", "Char" -> s.charAt(0);
             default -> s;
         };
     }
