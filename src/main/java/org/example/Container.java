@@ -1,5 +1,8 @@
 package org.example;
 
+import net.sf.cglib.proxy.Enhancer;
+import net.sf.cglib.proxy.MethodInterceptor;
+import net.sf.cglib.proxy.MethodProxy;
 import org.example.annotations.*;
 import org.example.exceptions.*;
 
@@ -79,9 +82,11 @@ public class Container {
         if (instance == null) {
             Constructor<?> constructor = c.getDeclaredConstructor();
             instance = constructor.newInstance();
+            decorateInstance(instance);
         }
 
-        decorateInstance(instance);
+        visitedClasses = new HashSet<>();
+
         return instance;
     }
 
@@ -114,7 +119,14 @@ public class Container {
             Class<?> fieldType = field.getType();
             Lazy lazyAnn = field.getAnnotation(Lazy.class);
             if (lazyAnn != null) {
-                //todo
+//                Enhancer e = new Enhancer();
+//                e.setClassLoader(fieldType.getClassLoader());
+//                e.setSuperclass(fieldType);
+//                e.setCallback((MethodInterceptor) (obj, method, args, proxy) -> proxy.invokeSuper(obj, args));
+//                value = e.create();
+//                field.setAccessible(true);
+//                field.set(o, value);
+//                continue;
             }
 
             Named namedAnn = field.getAnnotation(Named.class);
@@ -182,7 +194,7 @@ public class Container {
 
         for (int i = 0; i < parameters.length; i++) {
             Class<?> parameterType = parameters[i].getType();
-            if (!parameterType.isPrimitive() && !WRAPPER_CLASSES.contains(parameterType) && !parameterType.equals(String.class)) {
+            if (isNotWrapperPrimitiveOrString(parameterType)) {
                 values[i] = getInstance(parameterType);
                 continue;
             }
@@ -203,6 +215,10 @@ public class Container {
         }
 
         return values;
+    }
+
+    private boolean isNotWrapperPrimitiveOrString(Class<?> type) {
+        return !type.isPrimitive() && !WRAPPER_CLASSES.contains(type) && !type.equals(String.class);
     }
 
     private Object fromStringToPrimitive(String s, Class<?> type) {

@@ -98,4 +98,12 @@ public class TestClasses {
         @Inject
         M mField;
     }
+
+    static class K {
+        @Inject
+        @Lazy
+        L lField;
+    }
+
+    static class L {}
 }

@@ -137,4 +137,10 @@ class ContainerTest {
     void circularDependency() throws Exception {
         assertThrows(ConfigurationException.class, () -> container.getInstance(M.class));
     }
+
+    @Test
+    void lazyTest() throws Exception {
+        K k = container.getInstance(K.class);
+        System.out.println(k.lField);
+    }
 }
