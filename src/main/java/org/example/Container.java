@@ -1,13 +1,15 @@
 package org.example;
 
-import net.sf.cglib.proxy.Enhancer;
-import net.sf.cglib.proxy.MethodInterceptor;
-import net.sf.cglib.proxy.MethodProxy;
 import org.example.annotations.*;
 import org.example.exceptions.*;
+import org.mockito.Mockito;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
 
 import java.lang.reflect.*;
 import java.util.*;
+
+import static org.mockito.ArgumentMatchers.any;
 
 public class Container {
     private final Map<String, Object> namedInstances = new HashMap<>();
@@ -47,7 +49,7 @@ public class Container {
     public void registerInstance(Class<?> c, Object instance) throws Exception {
         Object existingInstance = classInstances.get(c);
 
-        if (existingInstance != null) {
+        if (existingInstance != null && !instance.getClass().equals(c)) {
             throw new ConfigurationException("Instance for " + c.getSimpleName() + " already exists");
         }
 
@@ -92,19 +94,21 @@ public class Container {
 
     public void decorateInstance(Object o) throws Exception {
         Class<?> instanceClass = o.getClass();
+        boolean hasCircularDependency = false;
         if (visitedClasses.contains(instanceClass)) {
-            throw new ConfigurationException("Circular dependency detected in class " + instanceClass);
+            hasCircularDependency = true;
+            //throw new ConfigurationException("Circular dependency detected in class " + instanceClass);
         }
 
         visitedClasses.add(instanceClass);
-        injectFields(o);
+        injectFields(o, hasCircularDependency);
 
         if (o instanceof Initializer) {
             ((Initializer) o).init();
         }
     }
 
-    private void injectFields(Object o) throws Exception {
+    private void injectFields(Object o, boolean hasCircularDependency) throws Exception {
         Class<?> instanceClass = o.getClass();
 
         Field[] fields = instanceClass.getDeclaredFields();
@@ -114,26 +118,27 @@ public class Container {
                 continue;
             }
 
-
-            Object value;
             Class<?> fieldType = field.getType();
             Lazy lazyAnn = field.getAnnotation(Lazy.class);
-            if (lazyAnn != null) {
-//                Enhancer e = new Enhancer();
-//                e.setClassLoader(fieldType.getClassLoader());
-//                e.setSuperclass(fieldType);
-//                e.setCallback((MethodInterceptor) (obj, method, args, proxy) -> proxy.invokeSuper(obj, args));
-//                value = e.create();
-//                field.setAccessible(true);
-//                field.set(o, value);
-//                continue;
+            if (lazyAnn != null || hasCircularDependency) {
+                setMock(o, field, fieldType);
+                continue;
             }
 
             Named namedAnn = field.getAnnotation(Named.class);
-            value = namedAnn != null ? getInstance(field.getName()) : getInstance(fieldType);
+            Object value = namedAnn != null ? getInstance(field.getName()) : getInstance(fieldType);
             field.setAccessible(true);
             field.set(o, value);
         }
+    }
+
+    private void setMock(Object o, Field field, Class<?> fieldType) throws IllegalAccessException, InvocationTargetException {
+        Object value = Mockito.mock(fieldType);
+        for (Method method : fieldType.getDeclaredMethods()) {
+            Mockito.when(method.invoke(value)).then(new ReplaceMockWithOriginalAnswer(o, field, value));
+        }
+        field.setAccessible(true);
+        field.set(o, value);
     }
 
     private Class<?> getClassForConstructor(Class<?> c) throws Exception {
@@ -174,6 +179,8 @@ public class Container {
             if (hasInjectAnn) {
                 throw new ConfigurationException("More than one constructor with @Inject annotation");
             }
+
+            //Lazy lazyAnn = constructor.getAnnotation(Lazy.class);
 
             hasInjectAnn = true;
             Object[] values = getParamValues(constructor);
@@ -233,5 +240,35 @@ public class Container {
             case "char", "Char" -> s.charAt(0);
             default -> s;
         };
+    }
+
+    private class ReplaceMockWithOriginalAnswer implements Answer<Object> {
+        private final Class<?> fieldType;
+        Object o;
+        Object fieldValue;
+        boolean isCalled = false;
+        Field field;
+
+
+        public ReplaceMockWithOriginalAnswer(Object o, Field field, Object fieldValue) {
+            this.o = o;
+            this.field = field;
+            this.fieldValue = fieldValue;
+            this.fieldType = fieldValue.getClass();
+        }
+
+        @Override
+        public Object answer(InvocationOnMock invocation) throws Throwable {
+            if (isCalled) {
+                return invocation.callRealMethod();
+            }
+
+            isCalled = true;
+            fieldValue = createInstance(fieldType);
+            classInstances.put(fieldType, fieldValue);
+            field.setAccessible(true);
+            field.set(o, fieldValue);
+            return invocation.callRealMethod();
+        }
     }
 }
