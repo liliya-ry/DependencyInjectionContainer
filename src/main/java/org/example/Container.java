@@ -1,21 +1,18 @@
 package org.example;
 
-import org.example.annotations.*;
-import org.example.exceptions.*;
 import org.mockito.Mockito;
-import org.mockito.invocation.InvocationOnMock;
-import org.mockito.stubbing.Answer;
-
 import java.lang.reflect.*;
 import java.util.*;
 
-import static org.mockito.ArgumentMatchers.any;
+import org.example.annotations.*;
+import org.example.exceptions.*;
 
 public class Container {
     private final Map<String, Object> namedInstances = new HashMap<>();
     private final Map<Class<?>, Object> classInstances = new HashMap<>();
     private final Map<Class<?>, Class<?>> implementations = new HashMap<>();
     private Set<Class<?>> visitedClasses = new HashSet<>();
+    private ApplicationEventPublisher appEventPublisher;
 
     public Container(Properties properties) {
         properties.forEach((k, v) -> namedInstances.put((String) k, v));
@@ -29,6 +26,7 @@ public class Container {
         T instance = (T) classInstances.get(c);
 
         if (instance == null) {
+            visitedClasses.add(c);
             instance = (T) createInstance(c);
             registerInstance(c, instance);
         }
@@ -49,7 +47,7 @@ public class Container {
     public void registerInstance(Class<?> c, Object instance) throws Exception {
         Object existingInstance = classInstances.get(c);
 
-        if (existingInstance != null && !instance.getClass().equals(c)) {
+        if (existingInstance != null) {
             throw new ConfigurationException("Instance for " + c.getSimpleName() + " already exists");
         }
 
@@ -93,24 +91,19 @@ public class Container {
     }
 
     public void decorateInstance(Object o) throws Exception {
-        Class<?> instanceClass = o.getClass();
-        boolean hasCircularDependency = false;
-        if (visitedClasses.contains(instanceClass)) {
-            hasCircularDependency = true;
-            //throw new ConfigurationException("Circular dependency detected in class " + instanceClass);
+        if (appEventPublisher != null) {
+            extractEvents(o);
         }
 
-        visitedClasses.add(instanceClass);
-        injectFields(o, hasCircularDependency);
+        injectFields(o);
 
         if (o instanceof Initializer) {
             ((Initializer) o).init();
         }
     }
 
-    private void injectFields(Object o, boolean hasCircularDependency) throws Exception {
+    private void injectFields(Object o) throws Exception {
         Class<?> instanceClass = o.getClass();
-
         Field[] fields = instanceClass.getDeclaredFields();
         for (Field field : fields) {
             Inject injectAnn = field.getAnnotation(Inject.class);
@@ -118,25 +111,45 @@ public class Container {
                 continue;
             }
 
-            Class<?> fieldType = field.getType();
-            Lazy lazyAnn = field.getAnnotation(Lazy.class);
-            if (lazyAnn != null || hasCircularDependency) {
-                setMock(o, field, fieldType);
-                continue;
+            if (field.getType().equals(ApplicationEventPublisher.class)) {
+                appEventPublisher = new ApplicationEventPublisher();
             }
 
             Named namedAnn = field.getAnnotation(Named.class);
-            Object value = namedAnn != null ? getInstance(field.getName()) : getInstance(fieldType);
-            field.setAccessible(true);
-            field.set(o, value);
+            Lazy lazyAnn = field.getAnnotation(Lazy.class);
+
+            if (lazyAnn != null) {
+                Object value = createMockObject(o, field, namedAnn);
+                setFieldValue(field, o, value);
+                continue;
+            }
+
+            if (namedAnn != null) {
+                Object value = getInstance(field.getName());
+                setFieldValue(field, o, value);
+                continue;
+            }
+
+            Class<?> fieldType = field.getType();
+            Object value = visitedClasses.contains(fieldType) ?
+                    createMockObject(o, field, namedAnn) :
+                    getInstance(fieldType);
+            setFieldValue(field, o, value);
         }
     }
 
-    private void setMock(Object o, Field field, Class<?> fieldType) throws IllegalAccessException, InvocationTargetException {
-        Object value = Mockito.mock(fieldType);
-        for (Method method : fieldType.getDeclaredMethods()) {
-            Mockito.when(method.invoke(value)).then(new ReplaceMockWithOriginalAnswer(o, field, value));
-        }
+    private Object createMockObject(Object o, Field field, Named namedAnn) {
+        return Mockito.mock(field.getType(), invocation -> {
+            Object value = namedAnn != null ?
+                    getInstance(field.getName()) :
+                    getInstance(field.getType());
+            setFieldValue(field, o, value);
+            return invocation.getMethod().invoke(value, invocation.getArguments());
+        });
+
+    }
+
+    private void setFieldValue(Field field, Object o, Object value) throws IllegalAccessException {
         field.setAccessible(true);
         field.set(o, value);
     }
@@ -179,8 +192,6 @@ public class Container {
             if (hasInjectAnn) {
                 throw new ConfigurationException("More than one constructor with @Inject annotation");
             }
-
-            //Lazy lazyAnn = constructor.getAnnotation(Lazy.class);
 
             hasInjectAnn = true;
             Object[] values = getParamValues(constructor);
@@ -242,33 +253,24 @@ public class Container {
         };
     }
 
-    private class ReplaceMockWithOriginalAnswer implements Answer<Object> {
-        private final Class<?> fieldType;
-        Object o;
-        Object fieldValue;
-        boolean isCalled = false;
-        Field field;
-
-
-        public ReplaceMockWithOriginalAnswer(Object o, Field field, Object fieldValue) {
-            this.o = o;
-            this.field = field;
-            this.fieldValue = fieldValue;
-            this.fieldType = fieldValue.getClass();
-        }
-
-        @Override
-        public Object answer(InvocationOnMock invocation) throws Throwable {
-            if (isCalled) {
-                return invocation.callRealMethod();
+    private void extractEvents(Object instance) {
+        Class<?> instanceClass = instance.getClass();
+        for (Method method : instanceClass.getDeclaredMethods()) {
+            EventListener eventListenerAnn = method.getAnnotation(EventListener.class);
+            if (eventListenerAnn == null) {
+                continue;
             }
 
-            isCalled = true;
-            fieldValue = createInstance(fieldType);
-            classInstances.put(fieldType, fieldValue);
-            field.setAccessible(true);
-            field.set(o, fieldValue);
-            return invocation.callRealMethod();
+            Parameter eventParam = method.getParameters()[0];
+            Class<?> eventType = eventParam.getType();
+            List<Listener> listenersList = appEventPublisher.eventListeners.get(eventType);
+
+            if (listenersList == null) {
+                listenersList = new ArrayList<>();
+            }
+
+            Listener eventListener = new Listener(method, instance);
+            listenersList.add(eventListener);
         }
     }
 }

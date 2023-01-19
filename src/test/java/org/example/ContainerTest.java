@@ -3,7 +3,6 @@ package org.example;
 import static org.junit.jupiter.api.Assertions.*;
 
 import org.example.TestClasses.*;
-import org.example.annotations.Default;
 import org.example.exceptions.*;
 import org.junit.jupiter.api.*;
 
@@ -93,7 +92,6 @@ class ContainerTest {
     }
 
     @Test
-    @Disabled
     void decorateInstance() throws Exception {
         C ci = new C();
         container.decorateInstance(ci);
@@ -114,7 +112,6 @@ class ContainerTest {
     }
 
     @Test
-    @Disabled
     void registerInstanceTwice() throws Exception {
         A a = new A();
         container.registerInstance(A.class, a);
@@ -138,7 +135,6 @@ class ContainerTest {
 
     @Test
     void circularDependency() throws Exception {
-       // assertThrows(ConfigurationException.class, () -> container.getInstance(M.class));
         M m = container.getInstance(M.class);
         assertNotNull(m);
         N n = container.getInstance(N.class);
@@ -148,8 +144,16 @@ class ContainerTest {
     @Test
     void lazyTest() throws Exception {
         K k = container.getInstance(K.class);
-        System.out.println(k.lField);
         k.lField.print();
         System.out.println(k.lField);
+    }
+
+    @Test
+    void testPublisher() throws Exception {
+        EventPublisher publisher = container.getInstance(EventPublisher.class);
+        assertNotNull(publisher);
+        CustomEventListener listener = container.getInstance(CustomEventListener.class);
+        assertNotNull(listener);
+        publisher.publishStringEvent("some message");
     }
 }

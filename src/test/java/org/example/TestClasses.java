@@ -103,12 +103,6 @@ public class TestClasses {
         @Inject
         @Lazy
         L lField;
-
-////        @Lazy
-////        @Inject
-//        public K(L lField) {
-//            this.lField = lField;
-//        }
     }
 
     static class L {
