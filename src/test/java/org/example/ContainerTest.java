@@ -153,4 +153,14 @@ class ContainerTest {
         k.lField.print();
         System.out.println(k.lField);
     }
+
+    @Test
+    void AsyncTest() throws Exception {
+        M m = container.getInstance(M.class);
+        assertNotNull(m);
+        N n = container.getInstance(N.class);
+        assertNotNull(n);
+        m.print();
+        n.print();
+    }
 }

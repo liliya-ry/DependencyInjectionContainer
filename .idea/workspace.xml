@@ -5,27 +5,10 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="e5e22d96-2cb3-4c38-8161-0523a9bb9b54" name="Changes" comment="update">
-      <change afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/dbnavigator.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/encodings.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/sonarlint/issuestore/index.pb" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/uiDesigner.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/org/example/annotations/Async.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/org/example/events/ApplicationEventPublisher.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/org/example/events/Listener.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/test/java/org/example/events/EventsTest.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/org/example/ApplicationEvent.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/org/example/events/ApplicationEvent.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/org/example/ApplicationEventPublisher.java" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/org/example/Container.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/org/example/Container.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/org/example/EventListener.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/org/example/events/EventListener.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/org/example/Listener.java" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/src/test/java/org/example/ContainerTest.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/test/java/org/example/ContainerTest.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/test/java/org/example/CustomEvent.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/test/java/org/example/events/CustomEvent.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/test/java/org/example/CustomEventListener.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/test/java/org/example/events/CustomEventListener.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/test/java/org/example/EventPublisher.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/test/java/org/example/events/EventPublisher.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/test/java/org/example/TestClasses.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/test/java/org/example/TestClasses.java" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -36,8 +19,8 @@
     <option name="RECENT_TEMPLATES">
       <list>
         <option value="Interface" />
-        <option value="Class" />
         <option value="AnnotationType" />
+        <option value="Class" />
       </list>
     </option>
   </component>
@@ -59,7 +42,7 @@
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "SHARE_PROJECT_CONFIGURATION_FILES": "true",
     "SONARLINT_PRECOMMIT_ANALYSIS": "true",
-    "last_opened_file_path": "D:/IdeaProjects/DependencyInjectionContainer",
+    "last_opened_file_path": "D:/IdeaProjects/Java Backend Internship/src/homeworks/homework52/DAOHandler.java",
     "project.structure.last.edited": "Libraries",
     "project.structure.proportion": "0.19140625",
     "project.structure.side.proportion": "0.3458283",
@@ -84,7 +67,7 @@
       <command value="mvn clean install -U" />
     </option>
   </component>
-  <component name="RunManager" selected="JUnit.ContainerTest">
+  <component name="RunManager" selected="JUnit.ContainerTest.AsyncTest">
     <configuration name="ContainerTest" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
       <module name="DependencyInjectionContainer" />
       <extension name="coverage">
@@ -104,33 +87,17 @@
         <option name="Make" enabled="true" />
       </method>
     </configuration>
-    <configuration name="ContainerTest.circularDependency" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
+    <configuration name="ContainerTest.AsyncTest" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
       <module name="DependencyInjectionContainer" />
       <extension name="coverage">
         <pattern>
-          <option name="PATTERN" value="org.example.events.*" />
+          <option name="PATTERN" value="org.example.*" />
           <option name="ENABLED" value="true" />
         </pattern>
       </extension>
       <option name="PACKAGE_NAME" value="org.example" />
       <option name="MAIN_CLASS_NAME" value="org.example.ContainerTest" />
-      <option name="METHOD_NAME" value="circularDependency" />
-      <option name="TEST_OBJECT" value="method" />
-      <method v="2">
-        <option name="Make" enabled="true" />
-      </method>
-    </configuration>
-    <configuration name="ContainerTest.lazyTest" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
-      <module name="DependencyInjectionContainer" />
-      <extension name="coverage">
-        <pattern>
-          <option name="PATTERN" value="org.example.events.*" />
-          <option name="ENABLED" value="true" />
-        </pattern>
-      </extension>
-      <option name="PACKAGE_NAME" value="org.example" />
-      <option name="MAIN_CLASS_NAME" value="org.example.ContainerTest" />
-      <option name="METHOD_NAME" value="lazyTest" />
+      <option name="METHOD_NAME" value="AsyncTest" />
       <option name="TEST_OBJECT" value="method" />
       <method v="2">
         <option name="Make" enabled="true" />
@@ -152,6 +119,21 @@
         <option name="Make" enabled="true" />
       </method>
     </configuration>
+    <configuration name="EventsTest" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
+      <module name="DependencyInjectionContainer" />
+      <extension name="coverage">
+        <pattern>
+          <option name="PATTERN" value="org.example.events.*" />
+          <option name="ENABLED" value="true" />
+        </pattern>
+      </extension>
+      <option name="PACKAGE_NAME" value="org.example.events" />
+      <option name="MAIN_CLASS_NAME" value="org.example.events.EventsTest" />
+      <option name="TEST_OBJECT" value="class" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
     <configuration name="EventsTest.testPublisher" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
       <module name="DependencyInjectionContainer" />
       <extension name="coverage">
@@ -169,19 +151,19 @@
       </method>
     </configuration>
     <list>
+      <item itemvalue="JUnit.ContainerTest.AsyncTest" />
+      <item itemvalue="JUnit.EventsTest" />
       <item itemvalue="JUnit.EventsTest.testPublisher" />
       <item itemvalue="JUnit.ContainerTest.testPublisher" />
-      <item itemvalue="JUnit.ContainerTest.circularDependency" />
       <item itemvalue="JUnit.ContainerTest" />
-      <item itemvalue="JUnit.ContainerTest.lazyTest" />
     </list>
     <recent_temporary>
       <list>
+        <item itemvalue="JUnit.ContainerTest.AsyncTest" />
         <item itemvalue="JUnit.ContainerTest" />
+        <item itemvalue="JUnit.EventsTest" />
         <item itemvalue="JUnit.EventsTest.testPublisher" />
         <item itemvalue="JUnit.ContainerTest.testPublisher" />
-        <item itemvalue="JUnit.ContainerTest.lazyTest" />
-        <item itemvalue="JUnit.ContainerTest.circularDependency" />
       </list>
     </recent_temporary>
   </component>
@@ -285,7 +267,14 @@
       <option name="project" value="LOCAL" />
       <updated>1674117859925</updated>
     </task>
-    <option name="localTasksCounter" value="14" />
+    <task id="LOCAL-00014" summary="update">
+      <created>1674198809437</created>
+      <option name="number" value="00014" />
+      <option name="presentableId" value="LOCAL-00014" />
+      <option name="project" value="LOCAL" />
+      <updated>1674198809437</updated>
+    </task>
+    <option name="localTasksCounter" value="15" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -323,7 +312,7 @@
         </line-breakpoint>
         <line-breakpoint enabled="true" type="java-line">
           <url>file://$PROJECT_DIR$/src/main/java/org/example/Container.java</url>
-          <line>278</line>
+          <line>297</line>
           <option name="timeStamp" value="6" />
         </line-breakpoint>
       </breakpoints>

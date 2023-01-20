@@ -92,11 +92,20 @@ public class TestClasses {
     static class M {
         @Inject
         N nField;
+
+        @Async
+        public void print() {
+            System.out.println("this is async method");
+        }
     }
 
     static class N {
         @Inject
         M mField;
+        @Async
+        public void print() {
+            System.out.println("this is async method");
+        }
     }
 
     static class K {
