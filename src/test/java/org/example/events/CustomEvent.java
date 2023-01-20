@@ -1,6 +1,6 @@
-package org.example;
+package org.example.events;
 
-import org.example.ApplicationEvent;
+import org.example.events.ApplicationEvent;
 
 public class CustomEvent extends ApplicationEvent {
     private final String message;

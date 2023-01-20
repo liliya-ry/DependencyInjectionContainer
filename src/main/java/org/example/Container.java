@@ -1,5 +1,8 @@
 package org.example;
 
+import org.example.events.EventListener;
+import org.example.events.ApplicationEventPublisher;
+import org.example.events.Listener;
 import org.mockito.Mockito;
 import java.lang.reflect.*;
 import java.util.*;
@@ -12,7 +15,9 @@ public class Container {
     private final Map<Class<?>, Object> classInstances = new HashMap<>();
     private final Map<Class<?>, Class<?>> implementations = new HashMap<>();
     private Set<Class<?>> visitedClasses = new HashSet<>();
-    private ApplicationEventPublisher appEventPublisher;
+    private final ApplicationEventPublisher appEventPublisher = new ApplicationEventPublisher();
+
+    public Container() {}
 
     public Container(Properties properties) {
         properties.forEach((k, v) -> namedInstances.put((String) k, v));
@@ -111,8 +116,13 @@ public class Container {
                 continue;
             }
 
+            if (o instanceof ApplicationEventPublisher) {
+                continue;
+            }
+
             if (field.getType().equals(ApplicationEventPublisher.class)) {
-                appEventPublisher = new ApplicationEventPublisher();
+               setFieldValue(field, o, appEventPublisher);
+               continue;
             }
 
             Named namedAnn = field.getAnnotation(Named.class);
@@ -254,23 +264,19 @@ public class Container {
     }
 
     private void extractEvents(Object instance) {
-        Class<?> instanceClass = instance.getClass();
-        for (Method method : instanceClass.getDeclaredMethods()) {
+        if (instance instanceof ApplicationEventPublisher) {
+            return;
+        }
+
+        for (Method method : instance.getClass().getDeclaredMethods()) {
             EventListener eventListenerAnn = method.getAnnotation(EventListener.class);
             if (eventListenerAnn == null) {
                 continue;
             }
 
             Parameter eventParam = method.getParameters()[0];
-            Class<?> eventType = eventParam.getType();
-            List<Listener> listenersList = appEventPublisher.eventListeners.get(eventType);
-
-            if (listenersList == null) {
-                listenersList = new ArrayList<>();
-            }
-
-            Listener eventListener = new Listener(method, instance);
-            listenersList.add(eventListener);
+            Listener eventListener = new Listener(instance, method, eventParam.getType());
+            appEventPublisher.listeners.add(eventListener);
         }
     }
 }

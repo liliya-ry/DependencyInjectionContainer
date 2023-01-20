@@ -1,4 +1,4 @@
-package org.example;
+package org.example.events;
 
 import org.example.annotations.Inject;
 

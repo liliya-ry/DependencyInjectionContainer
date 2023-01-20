@@ -1,4 +1,4 @@
-package org.example;
+package org.example.events;
 
 public abstract class ApplicationEvent {
     Object source;

@@ -13,9 +13,7 @@ class ContainerTest {
 
     @BeforeEach
     void init() {
-        Properties properties = new Properties();
-        properties.put("percent", "99.9");
-        container = new Container(properties);
+        container = new Container();
     }
 
     @Test
@@ -56,6 +54,10 @@ class ContainerTest {
 
     @Test
     void injectStringProperty() throws Exception {
+        Properties properties = new Properties();
+        properties.put("percent", "99.9");
+        container = new Container(properties);
+
         String email = "name@yahoo.com";
         container.registerInstance("email", email);
         FS inst = container.getInstance(FS.class);
@@ -67,6 +69,10 @@ class ContainerTest {
 
     @Test
     void constructorInject() throws Exception {
+        Properties properties = new Properties();
+        properties.put("percent", "99.9");
+        container = new Container(properties);
+
         E inst = container.getInstance(E.class);
         assertNotNull(inst);
         assertNotNull(inst.aField);
@@ -146,14 +152,5 @@ class ContainerTest {
         K k = container.getInstance(K.class);
         k.lField.print();
         System.out.println(k.lField);
-    }
-
-    @Test
-    void testPublisher() throws Exception {
-        EventPublisher publisher = container.getInstance(EventPublisher.class);
-        assertNotNull(publisher);
-        CustomEventListener listener = container.getInstance(CustomEventListener.class);
-        assertNotNull(listener);
-        publisher.publishStringEvent("some message");
     }
 }
