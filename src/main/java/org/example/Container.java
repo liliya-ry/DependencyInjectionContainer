@@ -1,29 +1,22 @@
 package org.example;
 
-import org.example.events.EventListener;
-import org.mockito.ArgumentMatchers;
 import org.mockito.Mockito;
-
 import java.lang.reflect.*;
 import java.util.*;
-import java.util.concurrent.*;
 
 import org.example.events.*;
 import org.example.annotations.*;
 import org.example.exceptions.*;
-import org.mockito.invocation.InvocationOnMock;
-import org.mockito.stubbing.Answer;
+import org.example.events.EventListener;
 
 public class Container {
     private final Map<String, Object> namedInstances = new HashMap<>();
     private final Map<Class<?>, Object> classInstances = new HashMap<>();
     private final Map<Class<?>, Class<?>> implementations = new HashMap<>();
     private Set<Class<?>> visitedClasses = new HashSet<>();
-    private final ApplicationEventPublisher appEventPublisher = new ApplicationEventPublisher();
-    private final ExecutorService pool = Executors.newFixedThreadPool(5);
+    private ApplicationEventPublisher appEventPublisher;
 
-    public Container() {
-    }
+    public Container() {}
 
     public Container(Properties properties) {
         properties.forEach((k, v) -> namedInstances.put((String) k, v));
@@ -104,7 +97,6 @@ public class Container {
     public void decorateInstance(Object o) throws Exception {
         extractEvents(o);
         injectFields(o);
-        o = getSpyOnObject(o);
 
         if (o instanceof Initializer) {
             ((Initializer) o).init();
@@ -125,6 +117,7 @@ public class Container {
             }
 
             if (field.getType().equals(ApplicationEventPublisher.class)) {
+                appEventPublisher = new ApplicationEventPublisher(this);
                 setFieldValue(field, o, appEventPublisher);
                 continue;
             }
@@ -160,22 +153,6 @@ public class Container {
             setFieldValue(field, o, value);
             return invocation.getMethod().invoke(value, invocation.getArguments());
         });
-    }
-
-    private Object getSpyOnObject(Object o) throws InvocationTargetException, IllegalAccessException {
-        Object spyObject = Mockito.spy(o);
-        for (Method method : o.getClass().getDeclaredMethods()) {
-            Mockito.when(method.invoke(o)).thenAnswer(invocation -> {
-                if (method.getAnnotation(Async.class) == null) {
-                    return invocation.getMethod().invoke(o, invocation.getArguments());
-                }
-
-                Callable<Object> callable = () -> method.invoke(o, invocation.getArguments());
-                Future<Object> future = pool.submit(callable);
-                return future.get();
-            });
-        }
-        return spyObject;
     }
 
     private void setFieldValue(Field field, Object o, Object value) throws IllegalAccessException {
@@ -295,7 +272,7 @@ public class Container {
 
             Parameter eventParam = method.getParameters()[0];
             Listener eventListener = new Listener(instance, method, eventParam.getType());
-            appEventPublisher.listeners.add(eventListener);
+            appEventPublisher.addListener(eventListener);
         }
     }
 }

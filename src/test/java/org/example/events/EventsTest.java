@@ -2,10 +2,12 @@ package org.example.events;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-import org.example.Container;
 import org.junit.jupiter.api.*;
+import java.util.concurrent.*;
 
- class EventsTest {
+import org.example.Container;
+
+class EventsTest {
     Container container;
 
     @BeforeEach
@@ -15,6 +17,9 @@ import org.junit.jupiter.api.*;
 
     @Test
     void testPublisher() throws Exception {
+        Executor executor = Executors.newFixedThreadPool(5);
+        ApplicationEventMulticaster multicaster = new ApplicationEventMulticaster(executor);
+        container.registerInstance("applicationEventMulticaster", multicaster);
         EventPublisher publisher = container.getInstance(EventPublisher.class);
         assertNotNull(publisher);
         CustomEventListener listener = container.getInstance(CustomEventListener.class);

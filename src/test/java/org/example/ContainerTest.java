@@ -2,11 +2,11 @@ package org.example;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import org.junit.jupiter.api.*;
+import java.util.Properties;
+
 import org.example.TestClasses.*;
 import org.example.exceptions.*;
-import org.junit.jupiter.api.*;
-
-import java.util.Properties;
 
 class ContainerTest {
     Container container;
@@ -152,15 +152,5 @@ class ContainerTest {
         K k = container.getInstance(K.class);
         k.lField.print();
         System.out.println(k.lField);
-    }
-
-    @Test
-    void AsyncTest() throws Exception {
-        M m = container.getInstance(M.class);
-        assertNotNull(m);
-        N n = container.getInstance(N.class);
-        assertNotNull(n);
-        m.print();
-        n.print();
     }
 }
